@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { OrganizationRoleGuard } from '../common/guards/organization-role.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
+import { MembershipRole } from '../generated/prisma/client';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationsService } from './organizations.service';
 
@@ -21,6 +24,8 @@ export class OrganizationsController {
   }
 
   @Get(':id')
+  @UseGuards(OrganizationRoleGuard)
+  @Roles(MembershipRole.VIEWER)
   findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     return this.organizationsService.findOneForUser(user.id, id);
   }
