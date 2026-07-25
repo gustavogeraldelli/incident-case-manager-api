@@ -1,14 +1,10 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { JwtUser } from './types/jwt-user.type';
-
-type AuthenticatedRequest = Request & {
-  user: JwtUser;
-};
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { JwtUser } from './types/jwt-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -26,7 +22,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() request: AuthenticatedRequest) {
-    return request.user;
+  me(@CurrentUser() user: JwtUser) {
+    return user;
   }
 }
