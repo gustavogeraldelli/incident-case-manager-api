@@ -55,7 +55,10 @@ export class OrganizationRoleGuard implements CanActivate {
       organizationId,
     );
 
-    if (!membership || !this.hasRequiredRole(membership.role, minimumRole)) {
+    if (
+      !membership ||
+      !this.membershipsService.hasAtLeastRole(membership.role, minimumRole)
+    ) {
       throw new ForbiddenException('Organization access denied');
     }
 
@@ -69,16 +72,5 @@ export class OrganizationRoleGuard implements CanActivate {
       request.body?.organizationId ??
       request.query.organizationId
     );
-  }
-
-  private hasRequiredRole(userRole: MembershipRole, minimumRole: MembershipRole) {
-    const roleRank: Record<MembershipRole, number> = {
-      OWNER: 4,
-      ADMIN: 3,
-      RESPONDER: 2,
-      VIEWER: 1,
-    };
-
-    return roleRank[userRole] >= roleRank[minimumRole];
   }
 }
