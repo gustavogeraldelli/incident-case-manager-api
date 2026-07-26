@@ -19,6 +19,7 @@ model User {
   memberships Membership[]
   createdIncidents  Incident[] @relation("IncidentCreator")
   assignedIncidents Incident[] @relation("IncidentAssignee")
+  auditLogs         AuditLog[] @relation("AuditLogActor")
 }
 
 model Organization {
@@ -31,6 +32,7 @@ model Organization {
   memberships Membership[]
   systems     System[]
   incidents   Incident[]
+  auditLogs   AuditLog[]
 }
 
 model Membership {
@@ -87,6 +89,21 @@ model Incident {
   system       System       @relation(fields: [systemId], references: [id])
   createdBy    User         @relation("IncidentCreator", fields: [createdById], references: [id])
   assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  actorId        String
+  entityType     String
+  entityId       String
+  action         String
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actor        User         @relation("AuditLogActor", fields: [actorId], references: [id])
 }
 
 enum MembershipRole {
