@@ -1,5 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole } from '../generated/prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { IncidentStatus, MembershipRole } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncidentReportDto } from './dto/create-incident-report.dto';
@@ -33,6 +39,26 @@ export class ReportsService {
     dto: CreateIncidentReportDto,
   ) {
     const incident = await this.findIncidentForReport(userId, incidentId);
+
+    if (!this.isReportableStatus(incident.status)) {
+      throw new BadRequestException(
+        'Incident report can only be generated for resolved, closed or false positive incidents',
+      );
+    }
+
+    const existingReport = await this.prisma.incidentReport.findUnique({
+      where: {
+        incidentId: incident.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingReport) {
+      throw new ConflictException('Incident report already exists');
+    }
+
     const timeline = this.buildTimeline(incident);
     const resolution = this.buildResolution(incident);
     const markdown = this.buildMarkdown({
@@ -204,6 +230,14 @@ export class ReportsService {
     }
 
     return lines.join('\n');
+  }
+
+  private isReportableStatus(status: IncidentStatus) {
+    return (
+      status === IncidentStatus.RESOLVED ||
+      status === IncidentStatus.CLOSED ||
+      status === IncidentStatus.FALSE_POSITIVE
+    );
   }
 
   private buildResolution(

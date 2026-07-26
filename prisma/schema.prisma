@@ -129,7 +129,7 @@ model ResponseAction {
 
 model IncidentReport {
   id                String   @id @default(uuid())
-  incidentId        String
+  incidentId        String   @unique
   title             String
   summary           String
   timeline          String?
