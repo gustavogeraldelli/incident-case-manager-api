@@ -1,9 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import {
+  ActionStatus,
+  ActionType,
   Criticality,
   Environment,
-  EvidenceType,
   IncidentCategory,
   IncidentSeverity,
   SystemType,
@@ -11,7 +12,7 @@ import {
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createE2eApp } from './setup-e2e-app';
 
-describe('Evidences (e2e)', () => {
+describe('Response actions (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
@@ -41,7 +42,7 @@ describe('Evidences (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        name: 'Evidence User',
+        name: 'Action User',
         email,
         password,
       })
@@ -87,41 +88,39 @@ describe('Evidences (e2e)', () => {
         systemId: systemResponse.body.id,
         title: `${slug} incident`,
         severity: IncidentSeverity.SEV2,
-        category: IncidentCategory.SECURITY,
-        summary: 'Suspicious authentication activity was detected.',
+        category: IncidentCategory.AVAILABILITY,
+        summary: 'A production dependency is returning elevated error rates.',
         detectedAt: '2026-07-26T12:00:00.000Z',
       })
       .expect(201);
 
-    return {
-      incidentId: incidentResponse.body.id as string,
-      organizationId: organizationResponse.body.id as string,
-    };
+    return incidentResponse.body.id as string;
   }
 
-  it('creates and lists evidences for an accessible incident', async () => {
-    const accessToken = await registerAndLogin('create.evidences.e2e@example.com');
-    const { incidentId } = await createIncident(accessToken, 'evidences-create');
+  it('creates and lists response actions for an accessible incident', async () => {
+    const accessToken = await registerAndLogin('create.actions.e2e@example.com');
+    const incidentId = await createIncident(accessToken, 'actions-create');
 
     const createResponse = await request(app.getHttpServer())
-      .post(`/api/v1/incidents/${incidentId}/evidences`)
+      .post(`/api/v1/incidents/${incidentId}/actions`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        type: EvidenceType.LOG,
-        content: '2026-07-26T12:00:00Z failed-login user=alice source=10.0.0.1',
+        type: ActionType.CONTAINMENT,
+        description: 'Temporarily disable the failing integration.',
+        dueAt: '2026-07-26T14:00:00.000Z',
       })
       .expect(201);
 
     expect(createResponse.body).toMatchObject({
       incidentId,
-      type: EvidenceType.LOG,
-      content: '2026-07-26T12:00:00Z failed-login user=alice source=10.0.0.1',
+      type: ActionType.CONTAINMENT,
+      description: 'Temporarily disable the failing integration.',
+      status: ActionStatus.TODO,
+      completedAt: null,
     });
-    expect(createResponse.body.id).toEqual(expect.any(String));
-    expect(createResponse.body.createdById).toEqual(expect.any(String));
 
     await request(app.getHttpServer())
-      .get(`/api/v1/incidents/${incidentId}/evidences`)
+      .get(`/api/v1/incidents/${incidentId}/actions`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200)
       .expect(({ body }) => {
@@ -129,51 +128,95 @@ describe('Evidences (e2e)', () => {
         expect(body[0]).toMatchObject({
           id: createResponse.body.id,
           incidentId,
-          type: EvidenceType.LOG,
+          type: ActionType.CONTAINMENT,
         });
       });
   });
 
-  it('blocks evidence creation for an incident outside the user organization', async () => {
-    const ownerToken = await registerAndLogin('owner.evidences.e2e@example.com');
-    const outsiderToken = await registerAndLogin(
-      'outsider.evidences.e2e@example.com',
-    );
-    const { incidentId } = await createIncident(ownerToken, 'evidences-private');
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/incidents/${incidentId}/evidences`)
-      .set('Authorization', `Bearer ${outsiderToken}`)
-      .send({
-        type: EvidenceType.URL,
-        content: 'https://example.com/private-dashboard',
-      })
-      .expect(403)
-      .expect(({ body }) => {
-        expect(body.message).toBe('Evidence access denied');
-      });
-  });
-
-  it('deletes evidence when the user has responder access or higher', async () => {
-    const accessToken = await registerAndLogin('delete.evidences.e2e@example.com');
-    const { incidentId } = await createIncident(accessToken, 'evidences-delete');
+  it('marks an action as done and fills completedAt', async () => {
+    const accessToken = await registerAndLogin('done.actions.e2e@example.com');
+    const incidentId = await createIncident(accessToken, 'actions-done');
 
     const createResponse = await request(app.getHttpServer())
-      .post(`/api/v1/incidents/${incidentId}/evidences`)
+      .post(`/api/v1/incidents/${incidentId}/actions`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        type: EvidenceType.TEXT,
-        content: 'Initial triage notes for the investigation.',
+        type: ActionType.MITIGATION,
+        description: 'Deploy the configuration rollback.',
       })
       .expect(201);
 
     await request(app.getHttpServer())
-      .delete(`/api/v1/evidences/${createResponse.body.id}`)
+      .patch(`/api/v1/actions/${createResponse.body.id}/status`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        status: ActionStatus.DONE,
+        completedAt: '2026-07-26T15:00:00.000Z',
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: createResponse.body.id,
+          status: ActionStatus.DONE,
+        });
+        expect(body.completedAt).toBe('2026-07-26T15:00:00.000Z');
+      });
+  });
+
+  it('blocks creating actions for an incident outside the user organization', async () => {
+    const ownerToken = await registerAndLogin('owner.actions.e2e@example.com');
+    const outsiderToken = await registerAndLogin('outsider.actions.e2e@example.com');
+    const incidentId = await createIncident(ownerToken, 'actions-private');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/incidents/${incidentId}/actions`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .send({
+        type: ActionType.INVESTIGATION,
+        description: 'Review private incident timeline.',
+      })
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Response action access denied');
+      });
+  });
+
+  it('updates and deletes response actions', async () => {
+    const accessToken = await registerAndLogin('mutate.actions.e2e@example.com');
+    const incidentId = await createIncident(accessToken, 'actions-mutate');
+
+    const createResponse = await request(app.getHttpServer())
+      .post(`/api/v1/incidents/${incidentId}/actions`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        type: ActionType.FOLLOW_UP,
+        description: 'Write follow up notes.',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/actions/${createResponse.body.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        description: 'Write follow up notes and owner summary.',
+        type: ActionType.COMMUNICATION,
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: createResponse.body.id,
+          description: 'Write follow up notes and owner summary.',
+          type: ActionType.COMMUNICATION,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/actions/${createResponse.body.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(204);
 
     await expect(
-      prisma.evidence.findUnique({
+      prisma.responseAction.findUnique({
         where: {
           id: createResponse.body.id,
         },

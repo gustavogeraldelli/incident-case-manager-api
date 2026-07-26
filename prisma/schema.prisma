@@ -21,6 +21,8 @@ model User {
   assignedIncidents Incident[] @relation("IncidentAssignee")
   auditLogs         AuditLog[] @relation("AuditLogActor")
   evidences         Evidence[] @relation("EvidenceCreator")
+  createdActions    ResponseAction[] @relation("ResponseActionCreator")
+  assignedActions   ResponseAction[] @relation("ResponseActionAssignee")
 }
 
 model Organization {
@@ -91,6 +93,7 @@ model Incident {
   createdBy    User         @relation("IncidentCreator", fields: [createdById], references: [id])
   assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
   evidences    Evidence[]
+  actions      ResponseAction[]
 }
 
 model Evidence {
@@ -103,6 +106,24 @@ model Evidence {
 
   incident  Incident @relation(fields: [incidentId], references: [id])
   createdBy User     @relation("EvidenceCreator", fields: [createdById], references: [id])
+}
+
+model ResponseAction {
+  id           String       @id @default(uuid())
+  incidentId   String
+  type         ActionType
+  description  String
+  status       ActionStatus @default(TODO)
+  assignedToId String?
+  createdById  String
+  dueAt        DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  createdBy  User     @relation("ResponseActionCreator", fields: [createdById], references: [id])
+  assignedTo User?    @relation("ResponseActionAssignee", fields: [assignedToId], references: [id])
 }
 
 model AuditLog {
@@ -183,4 +204,19 @@ enum EvidenceType {
   SCREENSHOT_LINK
   QUERY
   TEXT
+}
+
+enum ActionType {
+  INVESTIGATION
+  CONTAINMENT
+  MITIGATION
+  COMMUNICATION
+  FOLLOW_UP
+}
+
+enum ActionStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELED
 }
