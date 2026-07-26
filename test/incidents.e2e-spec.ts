@@ -1,8 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import {
+  ActionStatus,
+  ActionType,
   Criticality,
   Environment,
+  EvidenceType,
   IncidentCategory,
   IncidentSeverity,
   IncidentStatus,
@@ -295,6 +298,143 @@ describe('Incidents (e2e)', () => {
       .expect(403)
       .expect(({ body }) => {
         expect(body.message).toBe('Audit log access denied');
+      });
+  });
+
+  it('covers the full incident response workflow', async () => {
+    const ownerToken = await registerAndLogin('workflow.owner.e2e@example.com');
+    const outsiderToken = await registerAndLogin(
+      'workflow.outsider.e2e@example.com',
+    );
+    const organizationId = await createOrganization(ownerToken, 'workflow-org');
+    const systemId = await createSystem(ownerToken, organizationId);
+
+    const incidentResponse = await request(app.getHttpServer())
+      .post('/api/v1/incidents')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        ...incidentPayload(organizationId, systemId),
+        title: 'Workflow payment outage',
+        severity: IncidentSeverity.SEV1,
+        category: IncidentCategory.AVAILABILITY,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/incidents')
+      .query({
+        organizationId,
+        systemId,
+        status: IncidentStatus.OPEN,
+        severity: IncidentSeverity.SEV1,
+      })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(1);
+        expect(body[0]).toMatchObject({
+          id: incidentResponse.body.id,
+          organizationId,
+          systemId,
+          status: IncidentStatus.OPEN,
+          severity: IncidentSeverity.SEV1,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentResponse.body.id}/status`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        status: IncidentStatus.INVESTIGATING,
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: incidentResponse.body.id,
+          status: IncidentStatus.INVESTIGATING,
+          resolvedAt: null,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentResponse.body.id}/audit-logs`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(1);
+        expect(body[0]).toMatchObject({
+          entityType: 'Incident',
+          entityId: incidentResponse.body.id,
+          action: 'incident.status_changed',
+          before: {
+            status: IncidentStatus.OPEN,
+            resolvedAt: null,
+          },
+          after: {
+            status: IncidentStatus.INVESTIGATING,
+            resolvedAt: null,
+          },
+        });
+      });
+
+    const evidenceResponse = await request(app.getHttpServer())
+      .post(`/api/v1/incidents/${incidentResponse.body.id}/evidences`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        type: EvidenceType.METRIC,
+        content: 'checkout_error_rate=38% window=5m dashboard=https://example.com/dash',
+      })
+      .expect(201);
+
+    expect(evidenceResponse.body).toMatchObject({
+      incidentId: incidentResponse.body.id,
+      type: EvidenceType.METRIC,
+    });
+
+    const actionResponse = await request(app.getHttpServer())
+      .post(`/api/v1/incidents/${incidentResponse.body.id}/actions`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        type: ActionType.MITIGATION,
+        description: 'Route checkout traffic away from the failing dependency.',
+        dueAt: '2026-07-26T14:00:00.000Z',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/actions/${actionResponse.body.id}/status`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        status: ActionStatus.DONE,
+        completedAt: '2026-07-26T14:30:00.000Z',
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: actionResponse.body.id,
+          status: ActionStatus.DONE,
+        });
+        expect(body.completedAt).toBe('2026-07-26T14:30:00.000Z');
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentResponse.body.id}/evidences`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Evidence access denied');
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/incidents/${incidentResponse.body.id}/actions`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .send({
+        type: ActionType.INVESTIGATION,
+        description: 'Unauthorized workflow action.',
+      })
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Response action access denied');
       });
   });
 });
