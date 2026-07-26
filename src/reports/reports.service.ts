@@ -111,6 +111,15 @@ export class ReportsService {
     return response;
   }
 
+  async findMarkdownForUser(userId: string, id: string) {
+    const report = await this.findOneForUser(userId, id);
+
+    return {
+      title: report.title,
+      markdown: report.markdown,
+    };
+  }
+
   private async findIncidentForReport(userId: string, incidentId: string) {
     const incident = await this.prisma.incident.findUnique({
       where: {

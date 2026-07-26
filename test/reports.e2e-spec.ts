@@ -178,6 +178,21 @@ describe('Reports (e2e)', () => {
           incidentId,
         });
       });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/reports/${reportResponse.body.id}/markdown`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect('Content-Type', /text\/markdown/)
+      .expect(
+        'Content-Disposition',
+        'attachment; filename="reports-create-incident.md"',
+      )
+      .expect(({ text }) => {
+        expect(text).toContain('# Incident Report: reports-create incident');
+        expect(text).toContain('## Evidences');
+        expect(text).toContain('checkout_error_rate=38%');
+      });
   });
 
   it('rejects report generation for an open incident', async () => {
