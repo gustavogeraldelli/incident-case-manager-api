@@ -10,6 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -21,6 +22,8 @@ import { UpdateSystemDto } from './dto/update-system.dto';
 import { SystemsService } from './systems.service';
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@ApiTags('systems')
 @Controller()
 export class SystemsController {
   constructor(private readonly systemsService: SystemsService) {}

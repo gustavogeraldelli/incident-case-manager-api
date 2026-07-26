@@ -8,6 +8,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
@@ -16,6 +17,8 @@ import { CreateIncidentReportDto } from './dto/create-incident-report.dto';
 import { ReportsService } from './reports.service';
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@ApiTags('reports')
 @Controller()
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
@@ -36,6 +39,7 @@ export class ReportsController {
 
   @Get('reports/:id/markdown')
   @Header('Content-Type', 'text/markdown; charset=utf-8')
+  @ApiProduces('text/markdown')
   async findMarkdown(
     @CurrentUser() user: JwtUser,
     @Param('id') id: string,

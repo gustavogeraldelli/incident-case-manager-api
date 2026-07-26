@@ -10,6 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -19,6 +20,8 @@ import { UpdateResponseActionDto } from './dto/update-response-action.dto';
 import { ResponseActionsService } from './response-actions.service';
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@ApiTags('response-actions')
 @Controller()
 export class ResponseActionsController {
   constructor(private readonly responseActionsService: ResponseActionsService) {}

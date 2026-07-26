@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +17,8 @@ import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { EvidencesService } from './evidences.service';
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@ApiTags('evidences')
 @Controller()
 export class EvidencesController {
   constructor(private readonly evidencesService: EvidencesService) {}
