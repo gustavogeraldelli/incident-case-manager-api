@@ -20,6 +20,7 @@ describe('Auth (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.evidence.deleteMany();
     await prisma.incident.deleteMany();
     await prisma.system.deleteMany();
     await prisma.membership.deleteMany();

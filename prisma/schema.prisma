@@ -20,6 +20,7 @@ model User {
   createdIncidents  Incident[] @relation("IncidentCreator")
   assignedIncidents Incident[] @relation("IncidentAssignee")
   auditLogs         AuditLog[] @relation("AuditLogActor")
+  evidences         Evidence[] @relation("EvidenceCreator")
 }
 
 model Organization {
@@ -89,6 +90,19 @@ model Incident {
   system       System       @relation(fields: [systemId], references: [id])
   createdBy    User         @relation("IncidentCreator", fields: [createdById], references: [id])
   assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  evidences    Evidence[]
+}
+
+model Evidence {
+  id          String       @id @default(uuid())
+  incidentId  String
+  type        EvidenceType
+  content     String
+  createdById String
+  createdAt   DateTime     @default(now())
+
+  incident  Incident @relation(fields: [incidentId], references: [id])
+  createdBy User     @relation("EvidenceCreator", fields: [createdById], references: [id])
 }
 
 model AuditLog {
@@ -160,4 +174,13 @@ enum IncidentCategory {
   DATA_QUALITY
   THIRD_PARTY
   OTHER
+}
+
+enum EvidenceType {
+  LOG
+  METRIC
+  URL
+  SCREENSHOT_LINK
+  QUERY
+  TEXT
 }

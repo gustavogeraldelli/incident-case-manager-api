@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
+import { EvidencesModule } from './evidences/evidences.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     SystemsModule,
     IncidentsModule,
     AuditModule,
+    EvidencesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
