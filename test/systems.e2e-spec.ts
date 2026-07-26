@@ -19,6 +19,7 @@ describe('Systems (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
     await prisma.incident.deleteMany();

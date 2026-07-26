@@ -10,6 +10,7 @@ import { IncidentsModule } from './incidents/incidents.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ResponseActionsModule } from './response-actions/response-actions.module';
+import { ReportsModule } from './reports/reports.module';
 import { SystemsModule } from './systems/systems.module';
 import { UsersModule } from './users/users.module';
 
@@ -28,6 +29,7 @@ import { UsersModule } from './users/users.module';
     AuditModule,
     EvidencesModule,
     ResponseActionsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

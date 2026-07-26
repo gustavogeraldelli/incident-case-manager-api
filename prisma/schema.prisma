@@ -94,6 +94,7 @@ model Incident {
   assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
   evidences    Evidence[]
   actions      ResponseAction[]
+  reports      IncidentReport[]
 }
 
 model Evidence {
@@ -124,6 +125,24 @@ model ResponseAction {
   incident   Incident @relation(fields: [incidentId], references: [id])
   createdBy  User     @relation("ResponseActionCreator", fields: [createdById], references: [id])
   assignedTo User?    @relation("ResponseActionAssignee", fields: [assignedToId], references: [id])
+}
+
+model IncidentReport {
+  id                String   @id @default(uuid())
+  incidentId        String
+  title             String
+  summary           String
+  timeline          String?
+  impact            String?
+  rootCause         String?
+  resolution        String?
+  lessonsLearned    String?
+  preventiveActions String?
+  markdown          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  incident Incident @relation(fields: [incidentId], references: [id])
 }
 
 model AuditLog {
