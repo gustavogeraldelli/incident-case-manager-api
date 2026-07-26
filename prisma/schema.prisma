@@ -27,6 +27,7 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   memberships Membership[]
+  systems     System[]
 }
 
 model Membership {
@@ -43,9 +44,50 @@ model Membership {
   @@unique([userId, organizationId])
 }
 
+model System {
+  id             String      @id @default(uuid())
+  organizationId String
+  name           String
+  type           SystemType
+  environment    Environment
+  ownerTeam      String?
+  description    String?
+  criticality    Criticality @default(MEDIUM)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, name, environment])
+}
+
 enum MembershipRole {
   OWNER
   ADMIN
   RESPONDER
   VIEWER
+}
+
+enum SystemType {
+  API
+  WEB_APP
+  MOBILE_APP
+  DATABASE
+  QUEUE
+  INFRASTRUCTURE
+  THIRD_PARTY
+  OTHER
+}
+
+enum Environment {
+  PRODUCTION
+  STAGING
+  DEVELOPMENT
+}
+
+enum Criticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
