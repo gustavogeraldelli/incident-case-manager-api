@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.validation';
+import { IncidentsModule } from './incidents/incidents.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SystemsModule } from './systems/systems.module';
@@ -20,6 +21,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     OrganizationsModule,
     SystemsModule,
+    IncidentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -17,6 +17,8 @@ model User {
   updatedAt    DateTime @updatedAt
 
   memberships Membership[]
+  createdIncidents  Incident[] @relation("IncidentCreator")
+  assignedIncidents Incident[] @relation("IncidentAssignee")
 }
 
 model Organization {
@@ -28,6 +30,7 @@ model Organization {
 
   memberships Membership[]
   systems     System[]
+  incidents   Incident[]
 }
 
 model Membership {
@@ -57,8 +60,33 @@ model System {
   updatedAt      DateTime    @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id])
+  incidents    Incident[]
 
   @@unique([organizationId, name, environment])
+}
+
+model Incident {
+  id             String           @id @default(uuid())
+  organizationId String
+  systemId       String
+  title          String
+  severity       IncidentSeverity
+  status         IncidentStatus   @default(OPEN)
+  category       IncidentCategory
+  summary        String
+  impact         String?
+  rootCause      String?
+  detectedAt     DateTime
+  resolvedAt     DateTime?
+  createdById    String
+  assignedToId   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  system       System       @relation(fields: [systemId], references: [id])
+  createdBy    User         @relation("IncidentCreator", fields: [createdById], references: [id])
+  assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
 }
 
 enum MembershipRole {
@@ -90,4 +118,29 @@ enum Criticality {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum IncidentSeverity {
+  SEV1
+  SEV2
+  SEV3
+  SEV4
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  CONTAINED
+  RESOLVED
+  CLOSED
+  FALSE_POSITIVE
+}
+
+enum IncidentCategory {
+  SECURITY
+  AVAILABILITY
+  PERFORMANCE
+  DATA_QUALITY
+  THIRD_PARTY
+  OTHER
 }

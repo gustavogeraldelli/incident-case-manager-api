@@ -14,6 +14,7 @@ describe('Organizations (e2e)', () => {
   });
 
   beforeEach(async () => {
+    await prisma.incident.deleteMany();
     await prisma.system.deleteMany();
     await prisma.membership.deleteMany();
     await prisma.organization.deleteMany();
