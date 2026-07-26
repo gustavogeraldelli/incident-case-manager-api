@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service';
 import {
   IncidentStatus,
   MembershipRole,
@@ -40,6 +41,7 @@ export class IncidentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipsService: MembershipsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(userId: string, dto: CreateIncidentDto) {
@@ -147,7 +149,7 @@ export class IncidentsService {
       ? (dto.resolvedAt ?? new Date().toISOString())
       : null;
 
-    return this.prisma.incident.update({
+    const updatedIncident = await this.prisma.incident.update({
       where: {
         id: incident.id,
       },
@@ -157,6 +159,24 @@ export class IncidentsService {
       },
       select: incidentSelect,
     });
+
+    await this.auditService.record({
+      organizationId: incident.organizationId,
+      actorId: userId,
+      entityType: 'Incident',
+      entityId: incident.id,
+      action: 'incident.status_changed',
+      before: {
+        status: incident.status,
+        resolvedAt: incident.resolvedAt?.toISOString() ?? null,
+      },
+      after: {
+        status: updatedIncident.status,
+        resolvedAt: updatedIncident.resolvedAt?.toISOString() ?? null,
+      },
+    });
+
+    return updatedIncident;
   }
 
   private async findAccessibleIncident(

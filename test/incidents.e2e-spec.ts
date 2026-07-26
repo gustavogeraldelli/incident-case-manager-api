@@ -218,5 +218,81 @@ describe('Incidents (e2e)', () => {
         });
         expect(body.resolvedAt).toBe('2026-07-26T13:00:00.000Z');
       });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${createResponse.body.id}/audit-logs`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(1);
+        expect(body[0]).toMatchObject({
+          organizationId,
+          entityType: 'Incident',
+          entityId: createResponse.body.id,
+          action: 'incident.status_changed',
+          before: {
+            status: IncidentStatus.OPEN,
+            resolvedAt: null,
+          },
+          after: {
+            status: IncidentStatus.RESOLVED,
+            resolvedAt: '2026-07-26T13:00:00.000Z',
+          },
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/organizations/${organizationId}/audit-logs`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(1);
+        expect(body[0]).toMatchObject({
+          entityType: 'Incident',
+          entityId: createResponse.body.id,
+          action: 'incident.status_changed',
+        });
+      });
+  });
+
+  it('blocks audit log access for users outside the organization', async () => {
+    const ownerToken = await registerAndLogin(
+      'audit-owner.incidents.e2e@example.com',
+    );
+    const outsiderToken = await registerAndLogin(
+      'audit-outsider.incidents.e2e@example.com',
+    );
+    const organizationId = await createOrganization(ownerToken, 'incidents-audit');
+    const systemId = await createSystem(ownerToken, organizationId);
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/incidents')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send(incidentPayload(organizationId, systemId))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${createResponse.body.id}/status`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        status: IncidentStatus.INVESTIGATING,
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${createResponse.body.id}/audit-logs`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Audit log access denied');
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/organizations/${organizationId}/audit-logs`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Audit log access denied');
+      });
   });
 });
