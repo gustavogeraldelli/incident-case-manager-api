@@ -256,7 +256,7 @@ export class ReportsService {
       .join('\n');
   }
 
-  private buildMarkdown(input: {
+  buildMarkdown(input: {
     incident: Awaited<ReturnType<typeof this.findIncidentForReport>>;
     timeline: string;
     resolution?: string;
