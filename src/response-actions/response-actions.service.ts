@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { RedisService } from '../cache/redis.service';
+import { dashboardSummaryCacheKey } from '../dashboard/dashboard-cache';
 import { ActionStatus, MembershipRole } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,10 +31,15 @@ export class ResponseActionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipsService: MembershipsService,
+    private readonly redisService: RedisService,
   ) {}
 
   async findForIncident(userId: string, incidentId: string) {
-    await this.findAccessibleIncident(userId, incidentId, MembershipRole.VIEWER);
+    await this.findAccessibleIncident(
+      userId,
+      incidentId,
+      MembershipRole.VIEWER,
+    );
 
     return this.prisma.responseAction.findMany({
       where: {
@@ -41,7 +52,11 @@ export class ResponseActionsService {
     });
   }
 
-  async create(userId: string, incidentId: string, dto: CreateResponseActionDto) {
+  async create(
+    userId: string,
+    incidentId: string,
+    dto: CreateResponseActionDto,
+  ) {
     const incident = await this.findAccessibleIncident(
       userId,
       incidentId,
@@ -56,7 +71,7 @@ export class ResponseActionsService {
       );
     }
 
-    return this.prisma.responseAction.create({
+    const action = await this.prisma.responseAction.create({
       data: {
         incidentId,
         type: dto.type,
@@ -67,6 +82,10 @@ export class ResponseActionsService {
       },
       select: responseActionSelect,
     });
+
+    await this.invalidateDashboardSummary(incident.organizationId);
+
+    return action;
   }
 
   async update(userId: string, id: string, dto: UpdateResponseActionDto) {
@@ -84,13 +103,17 @@ export class ResponseActionsService {
       );
     }
 
-    return this.prisma.responseAction.update({
+    const updatedAction = await this.prisma.responseAction.update({
       where: {
         id: action.id,
       },
       data: dto,
       select: responseActionSelect,
     });
+
+    await this.invalidateDashboardSummary(action.incident.organizationId);
+
+    return updatedAction;
   }
 
   async updateStatus(userId: string, id: string, dto: UpdateActionStatusDto) {
@@ -105,7 +128,7 @@ export class ResponseActionsService {
         ? (dto.completedAt ?? new Date().toISOString())
         : null;
 
-    return this.prisma.responseAction.update({
+    const updatedAction = await this.prisma.responseAction.update({
       where: {
         id: action.id,
       },
@@ -115,6 +138,10 @@ export class ResponseActionsService {
       },
       select: responseActionSelect,
     });
+
+    await this.invalidateDashboardSummary(action.incident.organizationId);
+
+    return updatedAction;
   }
 
   async remove(userId: string, id: string) {
@@ -129,6 +156,8 @@ export class ResponseActionsService {
         id: action.id,
       },
     });
+
+    await this.invalidateDashboardSummary(action.incident.organizationId);
   }
 
   private async findAccessibleIncident(
@@ -203,5 +232,9 @@ export class ResponseActionsService {
     ) {
       throw new ForbiddenException('Response action access denied');
     }
+  }
+
+  private invalidateDashboardSummary(organizationId: string) {
+    return this.redisService.del(dashboardSummaryCacheKey(organizationId));
   }
 }

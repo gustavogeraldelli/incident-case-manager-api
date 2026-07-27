@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
+import { RedisService } from '../cache/redis.service';
+import { dashboardSummaryCacheKey } from '../dashboard/dashboard-cache';
 import {
   IncidentStatus,
   MembershipRole,
@@ -42,11 +44,19 @@ export class IncidentsService {
     private readonly prisma: PrismaService,
     private readonly membershipsService: MembershipsService,
     private readonly auditService: AuditService,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(userId: string, dto: CreateIncidentDto) {
-    await this.ensureMembership(userId, dto.organizationId, MembershipRole.RESPONDER);
-    await this.ensureSystemBelongsToOrganization(dto.systemId, dto.organizationId);
+    await this.ensureMembership(
+      userId,
+      dto.organizationId,
+      MembershipRole.RESPONDER,
+    );
+    await this.ensureSystemBelongsToOrganization(
+      dto.systemId,
+      dto.organizationId,
+    );
 
     if (dto.assignedToId) {
       await this.ensureMembership(
@@ -56,7 +66,7 @@ export class IncidentsService {
       );
     }
 
-    return this.prisma.incident.create({
+    const incident = await this.prisma.incident.create({
       data: {
         organizationId: dto.organizationId,
         systemId: dto.systemId,
@@ -73,6 +83,10 @@ export class IncidentsService {
       },
       select: incidentSelect,
     });
+
+    await this.invalidateDashboardSummary(dto.organizationId);
+
+    return incident;
   }
 
   findAllForUser(userId: string, query: ListIncidentsQueryDto) {
@@ -125,13 +139,17 @@ export class IncidentsService {
       );
     }
 
-    return this.prisma.incident.update({
+    const updatedIncident = await this.prisma.incident.update({
       where: {
         id: incident.id,
       },
       data: dto,
       select: incidentSelect,
     });
+
+    await this.invalidateDashboardSummary(incident.organizationId);
+
+    return updatedIncident;
   }
 
   async updateStatusForUser(
@@ -175,6 +193,8 @@ export class IncidentsService {
         resolvedAt: updatedIncident.resolvedAt?.toISOString() ?? null,
       },
     });
+
+    await this.invalidateDashboardSummary(incident.organizationId);
 
     return updatedIncident;
   }
@@ -243,5 +263,9 @@ export class IncidentsService {
       status === IncidentStatus.CLOSED ||
       status === IncidentStatus.FALSE_POSITIVE
     );
+  }
+
+  private invalidateDashboardSummary(organizationId: string) {
+    return this.redisService.del(dashboardSummaryCacheKey(organizationId));
   }
 }

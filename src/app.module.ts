@@ -4,7 +4,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { RedisModule } from './cache/redis.module';
 import { validateEnv } from './config/env.validation';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { EvidencesModule } from './evidences/evidences.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -20,6 +22,7 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
       validate: validateEnv,
     }),
+    RedisModule,
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -30,6 +33,7 @@ import { UsersModule } from './users/users.module';
     EvidencesModule,
     ResponseActionsModule,
     ReportsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

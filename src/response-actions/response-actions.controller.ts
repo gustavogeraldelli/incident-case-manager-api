@@ -24,7 +24,9 @@ import { ResponseActionsService } from './response-actions.service';
 @ApiTags('response-actions')
 @Controller()
 export class ResponseActionsController {
-  constructor(private readonly responseActionsService: ResponseActionsService) {}
+  constructor(
+    private readonly responseActionsService: ResponseActionsService,
+  ) {}
 
   @Get('incidents/:incidentId/actions')
   findForIncident(

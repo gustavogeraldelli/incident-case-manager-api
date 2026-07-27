@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { RedisService } from '../cache/redis.service';
+import { dashboardSummaryCacheKey } from '../dashboard/dashboard-cache';
 import { MembershipRole, Prisma } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,17 +30,22 @@ export class SystemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipsService: MembershipsService,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(organizationId: string, dto: CreateSystemDto) {
     try {
-      return await this.prisma.system.create({
+      const system = await this.prisma.system.create({
         data: {
           organizationId,
           ...dto,
         },
         select: systemSelect,
       });
+
+      await this.invalidateDashboardSummary(organizationId);
+
+      return system;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw new ConflictException(
@@ -74,13 +81,17 @@ export class SystemsService {
     );
 
     try {
-      return await this.prisma.system.update({
+      const updatedSystem = await this.prisma.system.update({
         where: {
           id: system.id,
         },
         data: dto,
         select: systemSelect,
       });
+
+      await this.invalidateDashboardSummary(system.organizationId);
+
+      return updatedSystem;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw new ConflictException(
@@ -104,6 +115,8 @@ export class SystemsService {
         id: system.id,
       },
     });
+
+    await this.invalidateDashboardSummary(system.organizationId);
   }
 
   private async findAccessibleSystem(
@@ -142,5 +155,9 @@ export class SystemsService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     );
+  }
+
+  private invalidateDashboardSummary(organizationId: string) {
+    return this.redisService.del(dashboardSummaryCacheKey(organizationId));
   }
 }
