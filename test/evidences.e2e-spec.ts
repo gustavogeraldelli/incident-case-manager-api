@@ -160,9 +160,9 @@ describe('Evidences (e2e)', () => {
         type: EvidenceType.URL,
         content: 'https://example.com/private-dashboard',
       })
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Evidence access denied');
+        expect(body.message).toBe('Incident not found');
       });
   });
 

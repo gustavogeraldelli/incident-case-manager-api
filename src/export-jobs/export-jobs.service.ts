@@ -1,10 +1,5 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { ExportJobStatus, MembershipRole } from '../generated/prisma/client';
-import { MembershipsService } from '../memberships/memberships.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ExportJobStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const exportJobSelect = {
@@ -19,10 +14,7 @@ const exportJobSelect = {
 
 @Injectable()
 export class ExportJobsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly membershipsService: MembershipsService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   create(reportId: string) {
     return this.prisma.exportJob.create({
@@ -76,9 +68,20 @@ export class ExportJobsService {
   }
 
   async findOneForUser(userId: string, id: string) {
-    const exportJob = await this.prisma.exportJob.findUnique({
+    const exportJob = await this.prisma.exportJob.findFirst({
       where: {
         id,
+        report: {
+          incident: {
+            organization: {
+              memberships: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          },
+        },
       },
       select: {
         ...exportJobSelect,
@@ -98,29 +101,7 @@ export class ExportJobsService {
       throw new NotFoundException('Export job not found');
     }
 
-    await this.ensureMembership(
-      userId,
-      exportJob.report.incident.organizationId,
-    );
-
     const { report: _report, ...response } = exportJob;
     return response;
-  }
-
-  private async ensureMembership(userId: string, organizationId: string) {
-    const membership = await this.membershipsService.findForUserInOrganization(
-      userId,
-      organizationId,
-    );
-
-    if (
-      !membership ||
-      !this.membershipsService.hasAtLeastRole(
-        membership.role,
-        MembershipRole.VIEWER,
-      )
-    ) {
-      throw new ForbiddenException('Export job access denied');
-    }
   }
 }

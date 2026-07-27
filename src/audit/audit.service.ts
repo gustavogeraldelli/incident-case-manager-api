@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MembershipRole, Prisma } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -54,9 +58,16 @@ export class AuditService {
   }
 
   async findForIncident(userId: string, incidentId: string) {
-    const incident = await this.prisma.incident.findUnique({
+    const incident = await this.prisma.incident.findFirst({
       where: {
         id: incidentId,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -67,8 +78,6 @@ export class AuditService {
     if (!incident) {
       throw new NotFoundException('Incident not found');
     }
-
-    await this.ensureMembership(userId, incident.organizationId);
 
     return this.prisma.auditLog.findMany({
       where: {

@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MembershipRole } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +25,11 @@ export class EvidencesService {
   ) {}
 
   async findForIncident(userId: string, incidentId: string) {
-    await this.findAccessibleIncident(userId, incidentId, MembershipRole.VIEWER);
+    await this.findAccessibleIncident(
+      userId,
+      incidentId,
+      MembershipRole.VIEWER,
+    );
 
     return this.prisma.evidence.findMany({
       where: {
@@ -35,7 +43,11 @@ export class EvidencesService {
   }
 
   async create(userId: string, incidentId: string, dto: CreateEvidenceDto) {
-    await this.findAccessibleIncident(userId, incidentId, MembershipRole.RESPONDER);
+    await this.findAccessibleIncident(
+      userId,
+      incidentId,
+      MembershipRole.RESPONDER,
+    );
 
     return this.prisma.evidence.create({
       data: {
@@ -49,9 +61,18 @@ export class EvidencesService {
   }
 
   async remove(userId: string, id: string) {
-    const evidence = await this.prisma.evidence.findUnique({
+    const evidence = await this.prisma.evidence.findFirst({
       where: {
         id,
+        incident: {
+          organization: {
+            memberships: {
+              some: {
+                userId,
+              },
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -85,13 +106,32 @@ export class EvidencesService {
     incidentId: string,
     minimumRole: MembershipRole,
   ) {
-    const incident = await this.prisma.incident.findUnique({
+    const incident = await this.prisma.incident.findFirst({
       where: {
         id: incidentId,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
       select: {
         id: true,
         organizationId: true,
+        organization: {
+          select: {
+            memberships: {
+              where: {
+                userId,
+              },
+              select: {
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -99,9 +139,17 @@ export class EvidencesService {
       throw new NotFoundException('Incident not found');
     }
 
-    await this.ensureMembership(userId, incident.organizationId, minimumRole);
+    const membership = incident.organization.memberships[0];
 
-    return incident;
+    if (
+      !membership ||
+      !this.membershipsService.hasAtLeastRole(membership.role, minimumRole)
+    ) {
+      throw new ForbiddenException('Evidence access denied');
+    }
+
+    const { organization: _organization, ...response } = incident;
+    return response;
   }
 
   private async ensureMembership(

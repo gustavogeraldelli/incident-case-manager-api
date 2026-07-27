@@ -12,12 +12,7 @@ import {
 import { ReportsService } from './reports.service';
 
 describe('ReportsService', () => {
-  const service = new ReportsService(
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-  );
+  const service = new ReportsService({} as never, {} as never, {} as never);
 
   it('builds incident report markdown with the main sections', () => {
     const detectedAt = new Date('2026-07-26T12:00:00.000Z');

@@ -345,9 +345,9 @@ describe('Incidents (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/api/v1/incidents/${createResponse.body.id}/audit-logs`)
       .set('Authorization', `Bearer ${outsiderToken}`)
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Audit log access denied');
+        expect(body.message).toBe('Incident not found');
       });
 
     await request(app.getHttpServer())
@@ -479,9 +479,9 @@ describe('Incidents (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/api/v1/incidents/${incidentResponse.body.id}/evidences`)
       .set('Authorization', `Bearer ${outsiderToken}`)
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Evidence access denied');
+        expect(body.message).toBe('Incident not found');
       });
 
     await request(app.getHttpServer())
@@ -491,9 +491,9 @@ describe('Incidents (e2e)', () => {
         type: ActionType.INVESTIGATION,
         description: 'Unauthorized workflow action.',
       })
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Response action access denied');
+        expect(body.message).toBe('Incident not found');
       });
   });
 });

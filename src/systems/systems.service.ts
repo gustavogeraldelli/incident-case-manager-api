@@ -124,21 +124,39 @@ export class SystemsService {
     id: string,
     minimumRole: MembershipRole,
   ) {
-    const system = await this.prisma.system.findUnique({
+    const system = await this.prisma.system.findFirst({
       where: {
         id,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
-      select: systemSelect,
+      select: {
+        ...systemSelect,
+        organization: {
+          select: {
+            memberships: {
+              where: {
+                userId,
+              },
+              select: {
+                role: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!system) {
       throw new NotFoundException('System not found');
     }
 
-    const membership = await this.membershipsService.findForUserInOrganization(
-      userId,
-      system.organizationId,
-    );
+    const membership = system.organization.memberships[0];
 
     if (
       !membership ||
@@ -147,7 +165,8 @@ export class SystemsService {
       throw new ForbiddenException('System access denied');
     }
 
-    return system;
+    const { organization: _organization, ...response } = system;
+    return response;
   }
 
   private isUniqueConstraintError(error: unknown) {

@@ -165,13 +165,32 @@ export class ResponseActionsService {
     incidentId: string,
     minimumRole: MembershipRole,
   ) {
-    const incident = await this.prisma.incident.findUnique({
+    const incident = await this.prisma.incident.findFirst({
       where: {
         id: incidentId,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
       select: {
         id: true,
         organizationId: true,
+        organization: {
+          select: {
+            memberships: {
+              where: {
+                userId,
+              },
+              select: {
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -179,9 +198,17 @@ export class ResponseActionsService {
       throw new NotFoundException('Incident not found');
     }
 
-    await this.ensureMembership(userId, incident.organizationId, minimumRole);
+    const membership = incident.organization.memberships[0];
 
-    return incident;
+    if (
+      !membership ||
+      !this.membershipsService.hasAtLeastRole(membership.role, minimumRole)
+    ) {
+      throw new ForbiddenException('Response action access denied');
+    }
+
+    const { organization: _organization, ...response } = incident;
+    return response;
   }
 
   private async findAccessibleAction(
@@ -189,15 +216,36 @@ export class ResponseActionsService {
     id: string,
     minimumRole: MembershipRole,
   ) {
-    const action = await this.prisma.responseAction.findUnique({
+    const action = await this.prisma.responseAction.findFirst({
       where: {
         id,
+        incident: {
+          organization: {
+            memberships: {
+              some: {
+                userId,
+              },
+            },
+          },
+        },
       },
       select: {
         id: true,
         incident: {
           select: {
             organizationId: true,
+            organization: {
+              select: {
+                memberships: {
+                  where: {
+                    userId,
+                  },
+                  select: {
+                    role: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -207,11 +255,14 @@ export class ResponseActionsService {
       throw new NotFoundException('Response action not found');
     }
 
-    await this.ensureMembership(
-      userId,
-      action.incident.organizationId,
-      minimumRole,
-    );
+    const membership = action.incident.organization.memberships[0];
+
+    if (
+      !membership ||
+      !this.membershipsService.hasAtLeastRole(membership.role, minimumRole)
+    ) {
+      throw new ForbiddenException('Response action access denied');
+    }
 
     return action;
   }

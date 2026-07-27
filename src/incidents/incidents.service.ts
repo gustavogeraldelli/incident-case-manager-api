@@ -204,20 +204,49 @@ export class IncidentsService {
     id: string,
     minimumRole: MembershipRole,
   ) {
-    const incident = await this.prisma.incident.findUnique({
+    const incident = await this.prisma.incident.findFirst({
       where: {
         id,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
-      select: incidentSelect,
+      select: {
+        ...incidentSelect,
+        organization: {
+          select: {
+            memberships: {
+              where: {
+                userId,
+              },
+              select: {
+                role: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!incident) {
       throw new NotFoundException('Incident not found');
     }
 
-    await this.ensureMembership(userId, incident.organizationId, minimumRole);
+    const membership = incident.organization.memberships[0];
 
-    return incident;
+    if (
+      !membership ||
+      !this.membershipsService.hasAtLeastRole(membership.role, minimumRole)
+    ) {
+      throw new ForbiddenException('Incident access denied');
+    }
+
+    const { organization: _organization, ...response } = incident;
+    return response;
   }
 
   private async ensureMembership(

@@ -201,9 +201,9 @@ describe('Export jobs (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/api/v1/export-jobs/${exportResponse.body.id}`)
       .set('Authorization', `Bearer ${outsiderToken}`)
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Export job access denied');
+        expect(body.message).toBe('Export job not found');
       });
   });
 

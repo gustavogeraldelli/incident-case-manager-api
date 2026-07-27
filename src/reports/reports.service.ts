@@ -1,15 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { ExportJobsService } from '../export-jobs/export-jobs.service';
-import { IncidentStatus, MembershipRole } from '../generated/prisma/client';
-import { MembershipsService } from '../memberships/memberships.service';
+import { IncidentStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncidentReportDto } from './dto/create-incident-report.dto';
 import { EXPORT_REPORT_JOB, REPORT_EXPORT_QUEUE } from './report-export.queue';
@@ -34,7 +32,6 @@ const reportSelect = {
 export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly membershipsService: MembershipsService,
     private readonly exportJobsService: ExportJobsService,
     @InjectQueue(REPORT_EXPORT_QUEUE)
     private readonly reportExportQueue: Queue,
@@ -94,9 +91,18 @@ export class ReportsService {
   }
 
   async findOneForUser(userId: string, id: string) {
-    const report = await this.prisma.incidentReport.findUnique({
+    const report = await this.prisma.incidentReport.findFirst({
       where: {
         id,
+        incident: {
+          organization: {
+            memberships: {
+              some: {
+                userId,
+              },
+            },
+          },
+        },
       },
       select: {
         ...reportSelect,
@@ -111,8 +117,6 @@ export class ReportsService {
     if (!report) {
       throw new NotFoundException('Incident report not found');
     }
-
-    await this.ensureMembership(userId, report.incident.organizationId);
 
     const { incident: _incident, ...response } = report;
     return response;
@@ -175,9 +179,16 @@ export class ReportsService {
   }
 
   private async findIncidentForReport(userId: string, incidentId: string) {
-    const incident = await this.prisma.incident.findUnique({
+    const incident = await this.prisma.incident.findFirst({
       where: {
         id: incidentId,
+        organization: {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -233,8 +244,6 @@ export class ReportsService {
       throw new NotFoundException('Incident not found');
     }
 
-    await this.ensureMembership(userId, incident.organizationId);
-
     const auditLogs = await this.prisma.auditLog.findMany({
       where: {
         entityType: 'Incident',
@@ -255,23 +264,6 @@ export class ReportsService {
       ...incident,
       auditLogs,
     };
-  }
-
-  private async ensureMembership(userId: string, organizationId: string) {
-    const membership = await this.membershipsService.findForUserInOrganization(
-      userId,
-      organizationId,
-    );
-
-    if (
-      !membership ||
-      !this.membershipsService.hasAtLeastRole(
-        membership.role,
-        MembershipRole.VIEWER,
-      )
-    ) {
-      throw new ForbiddenException('Incident report access denied');
-    }
   }
 
   private buildTimeline(

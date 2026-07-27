@@ -252,9 +252,9 @@ describe('Reports (e2e)', () => {
       .post(`/api/v1/incidents/${incidentId}/report`)
       .set('Authorization', `Bearer ${outsiderToken}`)
       .send({})
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Incident report access denied');
+        expect(body.message).toBe('Incident not found');
       });
 
     const reportResponse = await request(app.getHttpServer())
@@ -266,9 +266,9 @@ describe('Reports (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/api/v1/reports/${reportResponse.body.id}`)
       .set('Authorization', `Bearer ${outsiderToken}`)
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Incident report access denied');
+        expect(body.message).toBe('Incident report not found');
       });
   });
 });

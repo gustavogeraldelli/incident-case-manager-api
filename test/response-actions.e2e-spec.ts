@@ -181,9 +181,9 @@ describe('Response actions (e2e)', () => {
         type: ActionType.INVESTIGATION,
         description: 'Review private incident timeline.',
       })
-      .expect(403)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body.message).toBe('Response action access denied');
+        expect(body.message).toBe('Incident not found');
       });
   });
 
