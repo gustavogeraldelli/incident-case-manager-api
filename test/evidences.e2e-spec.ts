@@ -22,6 +22,7 @@ describe('Evidences (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -101,8 +102,13 @@ describe('Evidences (e2e)', () => {
   }
 
   it('creates and lists evidences for an accessible incident', async () => {
-    const accessToken = await registerAndLogin('create.evidences.e2e@example.com');
-    const { incidentId } = await createIncident(accessToken, 'evidences-create');
+    const accessToken = await registerAndLogin(
+      'create.evidences.e2e@example.com',
+    );
+    const { incidentId } = await createIncident(
+      accessToken,
+      'evidences-create',
+    );
 
     const createResponse = await request(app.getHttpServer())
       .post(`/api/v1/incidents/${incidentId}/evidences`)
@@ -136,11 +142,16 @@ describe('Evidences (e2e)', () => {
   });
 
   it('blocks evidence creation for an incident outside the user organization', async () => {
-    const ownerToken = await registerAndLogin('owner.evidences.e2e@example.com');
+    const ownerToken = await registerAndLogin(
+      'owner.evidences.e2e@example.com',
+    );
     const outsiderToken = await registerAndLogin(
       'outsider.evidences.e2e@example.com',
     );
-    const { incidentId } = await createIncident(ownerToken, 'evidences-private');
+    const { incidentId } = await createIncident(
+      ownerToken,
+      'evidences-private',
+    );
 
     await request(app.getHttpServer())
       .post(`/api/v1/incidents/${incidentId}/evidences`)
@@ -156,8 +167,13 @@ describe('Evidences (e2e)', () => {
   });
 
   it('deletes evidence when the user has responder access or higher', async () => {
-    const accessToken = await registerAndLogin('delete.evidences.e2e@example.com');
-    const { incidentId } = await createIncident(accessToken, 'evidences-delete');
+    const accessToken = await registerAndLogin(
+      'delete.evidences.e2e@example.com',
+    );
+    const { incidentId } = await createIncident(
+      accessToken,
+      'evidences-delete',
+    );
 
     const createResponse = await request(app.getHttpServer())
       .post(`/api/v1/incidents/${incidentId}/evidences`)

@@ -5,10 +5,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
+import { ExportJobsService } from '../export-jobs/export-jobs.service';
 import { IncidentStatus, MembershipRole } from '../generated/prisma/client';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncidentReportDto } from './dto/create-incident-report.dto';
+import { EXPORT_REPORT_JOB, REPORT_EXPORT_QUEUE } from './report-export.queue';
 
 const reportSelect = {
   id: true,
@@ -31,6 +35,9 @@ export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipsService: MembershipsService,
+    private readonly exportJobsService: ExportJobsService,
+    @InjectQueue(REPORT_EXPORT_QUEUE)
+    private readonly reportExportQueue: Queue,
   ) {}
 
   async createIncidentReport(
@@ -118,6 +125,53 @@ export class ReportsService {
       title: report.title,
       markdown: report.markdown,
     };
+  }
+
+  async requestExport(userId: string, reportId: string) {
+    await this.findOneForUser(userId, reportId);
+
+    const exportJob = await this.exportJobsService.create(reportId);
+
+    try {
+      await this.reportExportQueue.add(
+        EXPORT_REPORT_JOB,
+        {
+          exportJobId: exportJob.id,
+          reportId,
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    } catch (error) {
+      await this.exportJobsService.fail(exportJob.id, this.message(error));
+      throw error;
+    }
+
+    return exportJob;
+  }
+
+  async getMarkdownForExport(reportId: string) {
+    const report = await this.prisma.incidentReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      select: {
+        markdown: true,
+      },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Incident report not found');
+    }
+
+    return report.markdown;
   }
 
   private async findIncidentForReport(userId: string, incidentId: string) {
@@ -220,7 +274,9 @@ export class ReportsService {
     }
   }
 
-  private buildTimeline(incident: Awaited<ReturnType<typeof this.findIncidentForReport>>) {
+  private buildTimeline(
+    incident: Awaited<ReturnType<typeof this.findIncidentForReport>>,
+  ) {
     const lines = [
       `- Detected at: ${incident.detectedAt.toISOString()}`,
       `- Current status: ${incident.status}`,
@@ -247,6 +303,10 @@ export class ReportsService {
       status === IncidentStatus.CLOSED ||
       status === IncidentStatus.FALSE_POSITIVE
     );
+  }
+
+  private message(error: unknown) {
+    return error instanceof Error ? error.message : 'Unknown error';
   }
 
   private buildResolution(
@@ -321,7 +381,9 @@ export class ReportsService {
   }
 
   private formatEvidences(
-    evidences: Awaited<ReturnType<typeof this.findIncidentForReport>>['evidences'],
+    evidences: Awaited<
+      ReturnType<typeof this.findIncidentForReport>
+    >['evidences'],
   ) {
     if (!evidences.length) {
       return 'No evidences registered.';

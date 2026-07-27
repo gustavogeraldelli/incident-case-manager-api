@@ -15,6 +15,7 @@ describe('Organizations (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -76,7 +77,9 @@ describe('Organizations (e2e)', () => {
   });
 
   it('creates an owner membership when an organization is created', async () => {
-    const user = await registerAndLogin('membership.organizations.e2e@example.com');
+    const user = await registerAndLogin(
+      'membership.organizations.e2e@example.com',
+    );
 
     const response = await request(app.getHttpServer())
       .post('/api/v1/organizations')
@@ -102,7 +105,9 @@ describe('Organizations (e2e)', () => {
   });
 
   it('lists only organizations where the user is a member', async () => {
-    const owner = await registerAndLogin('owner.list.organizations.e2e@example.com');
+    const owner = await registerAndLogin(
+      'owner.list.organizations.e2e@example.com',
+    );
     const outsider = await registerAndLogin(
       'outsider.list.organizations.e2e@example.com',
     );
@@ -166,7 +171,9 @@ describe('Organizations (e2e)', () => {
   });
 
   it('blocks access to another user organization', async () => {
-    const owner = await registerAndLogin('owner.block.organizations.e2e@example.com');
+    const owner = await registerAndLogin(
+      'owner.block.organizations.e2e@example.com',
+    );
     const outsider = await registerAndLogin(
       'outsider.block.organizations.e2e@example.com',
     );
@@ -190,7 +197,9 @@ describe('Organizations (e2e)', () => {
   });
 
   it('rejects invalid organization payloads', async () => {
-    const user = await registerAndLogin('invalid.organizations.e2e@example.com');
+    const user = await registerAndLogin(
+      'invalid.organizations.e2e@example.com',
+    );
 
     await request(app.getHttpServer())
       .post('/api/v1/organizations')

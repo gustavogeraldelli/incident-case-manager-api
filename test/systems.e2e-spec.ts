@@ -19,6 +19,7 @@ describe('Systems (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -70,8 +71,13 @@ describe('Systems (e2e)', () => {
   }
 
   it('creates a system in an organization where the user is a member', async () => {
-    const accessToken = await registerAndLogin('create.systems.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'systems-create');
+    const accessToken = await registerAndLogin(
+      'create.systems.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'systems-create',
+    );
 
     const response = await request(app.getHttpServer())
       .post(`/api/v1/organizations/${organizationId}/systems`)
@@ -147,7 +153,10 @@ describe('Systems (e2e)', () => {
     const outsiderToken = await registerAndLogin(
       'outsider.systems.e2e@example.com',
     );
-    const organizationId = await createOrganization(ownerToken, 'systems-private');
+    const organizationId = await createOrganization(
+      ownerToken,
+      'systems-private',
+    );
 
     await request(app.getHttpServer())
       .post(`/api/v1/organizations/${organizationId}/systems`)
@@ -164,8 +173,13 @@ describe('Systems (e2e)', () => {
   });
 
   it('updates and deletes a system when the user has responder access or higher', async () => {
-    const accessToken = await registerAndLogin('mutate.systems.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'systems-mutate');
+    const accessToken = await registerAndLogin(
+      'mutate.systems.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'systems-mutate',
+    );
 
     const createResponse = await request(app.getHttpServer())
       .post(`/api/v1/organizations/${organizationId}/systems`)
@@ -208,8 +222,13 @@ describe('Systems (e2e)', () => {
   });
 
   it('rejects duplicate systems in the same organization and environment', async () => {
-    const accessToken = await registerAndLogin('duplicate.systems.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'systems-duplicate');
+    const accessToken = await registerAndLogin(
+      'duplicate.systems.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'systems-duplicate',
+    );
 
     const payload = {
       name: 'Billing API',

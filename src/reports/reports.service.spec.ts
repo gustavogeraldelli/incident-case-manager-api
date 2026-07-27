@@ -68,14 +68,17 @@ describe('ReportsService', () => {
         ],
       },
       timeline: '- Status changed from OPEN to RESOLVED',
-      resolution: '- [MITIGATION] Route traffic away from the failing dependency.',
+      resolution:
+        '- [MITIGATION] Route traffic away from the failing dependency.',
       lessonsLearned: 'Improve provider failover testing.',
       preventiveActions: 'Add synthetic checkout monitoring.',
     });
 
     expect(markdown).toContain('# Incident Report: Checkout outage');
     expect(markdown).toContain('## Summary');
-    expect(markdown).toContain('Checkout was unavailable for production users.');
+    expect(markdown).toContain(
+      'Checkout was unavailable for production users.',
+    );
     expect(markdown).toContain('## Impact');
     expect(markdown).toContain('Customers could not complete payments.');
     expect(markdown).toContain('## Evidences');

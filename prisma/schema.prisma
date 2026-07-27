@@ -16,11 +16,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships Membership[]
-  createdIncidents  Incident[] @relation("IncidentCreator")
-  assignedIncidents Incident[] @relation("IncidentAssignee")
-  auditLogs         AuditLog[] @relation("AuditLogActor")
-  evidences         Evidence[] @relation("EvidenceCreator")
+  memberships       Membership[]
+  createdIncidents  Incident[]       @relation("IncidentCreator")
+  assignedIncidents Incident[]       @relation("IncidentAssignee")
+  auditLogs         AuditLog[]       @relation("AuditLogActor")
+  evidences         Evidence[]       @relation("EvidenceCreator")
   createdActions    ResponseAction[] @relation("ResponseActionCreator")
   assignedActions   ResponseAction[] @relation("ResponseActionAssignee")
 }
@@ -88,10 +88,10 @@ model Incident {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  system       System       @relation(fields: [systemId], references: [id])
-  createdBy    User         @relation("IncidentCreator", fields: [createdById], references: [id])
-  assignedTo   User?        @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  system       System           @relation(fields: [systemId], references: [id])
+  createdBy    User             @relation("IncidentCreator", fields: [createdById], references: [id])
+  assignedTo   User?            @relation("IncidentAssignee", fields: [assignedToId], references: [id])
   evidences    Evidence[]
   actions      ResponseAction[]
   reports      IncidentReport[]
@@ -142,7 +142,20 @@ model IncidentReport {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  incident Incident @relation(fields: [incidentId], references: [id])
+  incident   Incident    @relation(fields: [incidentId], references: [id])
+  exportJobs ExportJob[]
+}
+
+model ExportJob {
+  id         String          @id @default(uuid())
+  reportId   String
+  status     ExportJobStatus @default(PENDING)
+  result     String?
+  error      String?
+  createdAt  DateTime        @default(now())
+  finishedAt DateTime?
+
+  report IncidentReport @relation(fields: [reportId], references: [id])
 }
 
 model AuditLog {
@@ -238,4 +251,11 @@ enum ActionStatus {
   IN_PROGRESS
   DONE
   CANCELED
+}
+
+enum ExportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

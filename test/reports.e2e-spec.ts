@@ -25,6 +25,7 @@ describe('Reports (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -102,7 +103,10 @@ describe('Reports (e2e)', () => {
     return incidentResponse.body.id as string;
   }
 
-  async function enrichAndResolveIncident(accessToken: string, incidentId: string) {
+  async function enrichAndResolveIncident(
+    accessToken: string,
+    incidentId: string,
+  ) {
     await request(app.getHttpServer())
       .post(`/api/v1/incidents/${incidentId}/evidences`)
       .set('Authorization', `Bearer ${accessToken}`)
@@ -141,7 +145,9 @@ describe('Reports (e2e)', () => {
   }
 
   it('generates and fetches an incident report for an authorized user', async () => {
-    const accessToken = await registerAndLogin('create.reports.e2e@example.com');
+    const accessToken = await registerAndLogin(
+      'create.reports.e2e@example.com',
+    );
     const incidentId = await createIncident(accessToken, 'reports-create');
     await enrichAndResolveIncident(accessToken, incidentId);
 
@@ -212,7 +218,9 @@ describe('Reports (e2e)', () => {
   });
 
   it('rejects a second report for the same incident', async () => {
-    const accessToken = await registerAndLogin('duplicate.reports.e2e@example.com');
+    const accessToken = await registerAndLogin(
+      'duplicate.reports.e2e@example.com',
+    );
     const incidentId = await createIncident(accessToken, 'reports-duplicate');
     await enrichAndResolveIncident(accessToken, incidentId);
 
@@ -234,7 +242,9 @@ describe('Reports (e2e)', () => {
 
   it('blocks report generation and reading for users outside the organization', async () => {
     const ownerToken = await registerAndLogin('owner.reports.e2e@example.com');
-    const outsiderToken = await registerAndLogin('outsider.reports.e2e@example.com');
+    const outsiderToken = await registerAndLogin(
+      'outsider.reports.e2e@example.com',
+    );
     const incidentId = await createIncident(ownerToken, 'reports-private');
     await enrichAndResolveIncident(ownerToken, incidentId);
 

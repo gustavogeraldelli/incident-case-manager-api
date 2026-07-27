@@ -25,6 +25,7 @@ describe('Incidents (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -104,8 +105,13 @@ describe('Incidents (e2e)', () => {
   }
 
   it('creates an incident for a system in the user organization', async () => {
-    const accessToken = await registerAndLogin('create.incidents.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'incidents-create');
+    const accessToken = await registerAndLogin(
+      'create.incidents.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'incidents-create',
+    );
     const systemId = await createSystem(accessToken, organizationId);
 
     const response = await request(app.getHttpServer())
@@ -127,8 +133,13 @@ describe('Incidents (e2e)', () => {
   });
 
   it('filters incidents by organization, system, status and severity', async () => {
-    const accessToken = await registerAndLogin('filter.incidents.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'incidents-filter');
+    const accessToken = await registerAndLogin(
+      'filter.incidents.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'incidents-filter',
+    );
     const systemId = await createSystem(accessToken, organizationId);
 
     await request(app.getHttpServer())
@@ -159,11 +170,16 @@ describe('Incidents (e2e)', () => {
   });
 
   it('blocks creating an incident in another user organization', async () => {
-    const ownerToken = await registerAndLogin('owner.incidents.e2e@example.com');
+    const ownerToken = await registerAndLogin(
+      'owner.incidents.e2e@example.com',
+    );
     const outsiderToken = await registerAndLogin(
       'outsider.incidents.e2e@example.com',
     );
-    const organizationId = await createOrganization(ownerToken, 'incidents-private');
+    const organizationId = await createOrganization(
+      ownerToken,
+      'incidents-private',
+    );
     const systemId = await createSystem(ownerToken, organizationId);
 
     await request(app.getHttpServer())
@@ -177,7 +193,9 @@ describe('Incidents (e2e)', () => {
   });
 
   it('rejects an incident when the system belongs to another organization', async () => {
-    const accessToken = await registerAndLogin('system-mismatch.incidents.e2e@example.com');
+    const accessToken = await registerAndLogin(
+      'system-mismatch.incidents.e2e@example.com',
+    );
     const firstOrganizationId = await createOrganization(
       accessToken,
       'incidents-system-one',
@@ -186,7 +204,10 @@ describe('Incidents (e2e)', () => {
       accessToken,
       'incidents-system-two',
     );
-    const secondSystemId = await createSystem(accessToken, secondOrganizationId);
+    const secondSystemId = await createSystem(
+      accessToken,
+      secondOrganizationId,
+    );
 
     await request(app.getHttpServer())
       .post('/api/v1/incidents')
@@ -199,8 +220,13 @@ describe('Incidents (e2e)', () => {
   });
 
   it('updates incident status through the dedicated status endpoint', async () => {
-    const accessToken = await registerAndLogin('status.incidents.e2e@example.com');
-    const organizationId = await createOrganization(accessToken, 'incidents-status');
+    const accessToken = await registerAndLogin(
+      'status.incidents.e2e@example.com',
+    );
+    const organizationId = await createOrganization(
+      accessToken,
+      'incidents-status',
+    );
     const systemId = await createSystem(accessToken, organizationId);
 
     const createResponse = await request(app.getHttpServer())
@@ -268,7 +294,10 @@ describe('Incidents (e2e)', () => {
     const outsiderToken = await registerAndLogin(
       'audit-outsider.incidents.e2e@example.com',
     );
-    const organizationId = await createOrganization(ownerToken, 'incidents-audit');
+    const organizationId = await createOrganization(
+      ownerToken,
+      'incidents-audit',
+    );
     const systemId = await createSystem(ownerToken, organizationId);
 
     const createResponse = await request(app.getHttpServer())
@@ -383,7 +412,8 @@ describe('Incidents (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({
         type: EvidenceType.METRIC,
-        content: 'checkout_error_rate=38% window=5m dashboard=https://example.com/dash',
+        content:
+          'checkout_error_rate=38% window=5m dashboard=https://example.com/dash',
       })
       .expect(201);
 

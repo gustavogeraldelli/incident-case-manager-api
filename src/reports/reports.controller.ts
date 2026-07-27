@@ -37,6 +37,11 @@ export class ReportsController {
     return this.reportsService.findOneForUser(user.id, id);
   }
 
+  @Post('reports/:id/export')
+  exportReport(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.reportsService.requestExport(user.id, id);
+  }
+
   @Get('reports/:id/markdown')
   @Header('Content-Type', 'text/markdown; charset=utf-8')
   @ApiProduces('text/markdown')

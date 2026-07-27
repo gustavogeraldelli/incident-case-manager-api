@@ -23,6 +23,7 @@ describe('Response actions (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany();
+    await prisma.exportJob.deleteMany();
     await prisma.incidentReport.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.responseAction.deleteMany();
@@ -99,7 +100,9 @@ describe('Response actions (e2e)', () => {
   }
 
   it('creates and lists response actions for an accessible incident', async () => {
-    const accessToken = await registerAndLogin('create.actions.e2e@example.com');
+    const accessToken = await registerAndLogin(
+      'create.actions.e2e@example.com',
+    );
     const incidentId = await createIncident(accessToken, 'actions-create');
 
     const createResponse = await request(app.getHttpServer())
@@ -166,7 +169,9 @@ describe('Response actions (e2e)', () => {
 
   it('blocks creating actions for an incident outside the user organization', async () => {
     const ownerToken = await registerAndLogin('owner.actions.e2e@example.com');
-    const outsiderToken = await registerAndLogin('outsider.actions.e2e@example.com');
+    const outsiderToken = await registerAndLogin(
+      'outsider.actions.e2e@example.com',
+    );
     const incidentId = await createIncident(ownerToken, 'actions-private');
 
     await request(app.getHttpServer())
@@ -183,7 +188,9 @@ describe('Response actions (e2e)', () => {
   });
 
   it('updates and deletes response actions', async () => {
-    const accessToken = await registerAndLogin('mutate.actions.e2e@example.com');
+    const accessToken = await registerAndLogin(
+      'mutate.actions.e2e@example.com',
+    );
     const incidentId = await createIncident(accessToken, 'actions-mutate');
 
     const createResponse = await request(app.getHttpServer())
