@@ -4,6 +4,7 @@ import {
   Get,
   Header,
   Param,
+  ParseUUIDPipe,
   Post,
   Res,
   UseGuards,
@@ -26,19 +27,25 @@ export class ReportsController {
   @Post('incidents/:incidentId/report')
   createIncidentReport(
     @CurrentUser() user: JwtUser,
-    @Param('incidentId') incidentId: string,
+    @Param('incidentId', ParseUUIDPipe) incidentId: string,
     @Body() dto: CreateIncidentReportDto,
   ) {
     return this.reportsService.createIncidentReport(user.id, incidentId, dto);
   }
 
   @Get('reports/:id')
-  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.reportsService.findOneForUser(user.id, id);
   }
 
   @Post('reports/:id/export')
-  exportReport(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  exportReport(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.reportsService.requestExport(user.id, id);
   }
 
@@ -47,7 +54,7 @@ export class ReportsController {
   @ApiProduces('text/markdown')
   async findMarkdown(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Res({ passthrough: true }) response: Response,
   ) {
     const report = await this.reportsService.findMarkdownForUser(user.id, id);

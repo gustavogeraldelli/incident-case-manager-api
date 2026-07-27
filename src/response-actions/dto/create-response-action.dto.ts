@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -24,9 +25,9 @@ export class CreateResponseActionDto {
   @MaxLength(1000)
   description: string;
 
-  @ApiPropertyOptional({ example: 'cm2usr7by0000xks7x9y8z1a2' })
+  @ApiPropertyOptional({ example: 'a9c721b4-73d0-4cf6-8f27-c558a69d7cb3' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   assignedToId?: string;
 
   @ApiPropertyOptional({ example: '2026-07-27T18:00:00.000Z' })

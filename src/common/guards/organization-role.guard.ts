@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { isUUID } from 'class-validator';
 import type { Request } from 'express';
 import { ORGANIZATION_ROLES_KEY } from '../decorators/roles.decorator';
 import type { JwtUser } from '../../auth/types/jwt-user.type';
@@ -48,6 +50,10 @@ export class OrganizationRoleGuard implements CanActivate {
 
     if (!user || !organizationId) {
       throw new ForbiddenException('Organization access denied');
+    }
+
+    if (!isUUID(organizationId)) {
+      throw new BadRequestException('Invalid organization id');
     }
 
     const membership = await this.membershipsService.findForUserInOrganization(

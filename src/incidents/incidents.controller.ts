@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -36,14 +37,17 @@ export class IncidentsController {
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.incidentsService.findOneForUser(user.id, id);
   }
 
   @Patch(':id')
   update(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateIncidentDto,
   ) {
     return this.incidentsService.updateForUser(user.id, id, dto);
@@ -52,7 +56,7 @@ export class IncidentsController {
   @Patch(':id/status')
   updateStatus(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateIncidentStatusDto,
   ) {
     return this.incidentsService.updateStatusForUser(user.id, id, dto);

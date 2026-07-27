@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -13,9 +14,9 @@ import {
 } from '../../generated/prisma/client';
 
 export class UpdateIncidentDto {
-  @ApiPropertyOptional({ example: 'cm2sys9da0001xks7l7z9b2e3' })
+  @ApiPropertyOptional({ example: '7c5c05c7-9303-4a7a-8a23-9fbb1a623b12' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   systemId?: string;
 
   @ApiPropertyOptional({
@@ -29,18 +30,25 @@ export class UpdateIncidentDto {
   @MaxLength(140)
   title?: string;
 
-  @ApiPropertyOptional({ enum: IncidentSeverity, example: IncidentSeverity.SEV2 })
+  @ApiPropertyOptional({
+    enum: IncidentSeverity,
+    example: IncidentSeverity.SEV2,
+  })
   @IsOptional()
   @IsEnum(IncidentSeverity)
   severity?: IncidentSeverity;
 
-  @ApiPropertyOptional({ enum: IncidentCategory, example: IncidentCategory.SECURITY })
+  @ApiPropertyOptional({
+    enum: IncidentCategory,
+    example: IncidentCategory.SECURITY,
+  })
   @IsOptional()
   @IsEnum(IncidentCategory)
   category?: IncidentCategory;
 
   @ApiPropertyOptional({
-    example: 'Multiple requests with valid credentials originated from an unusual network range.',
+    example:
+      'Multiple requests with valid credentials originated from an unusual network range.',
     minLength: 10,
     maxLength: 2000,
   })
@@ -78,8 +86,8 @@ export class UpdateIncidentDto {
   @IsDateString()
   resolvedAt?: string;
 
-  @ApiPropertyOptional({ example: 'cm2usr7by0000xks7x9y8z1a2' })
+  @ApiPropertyOptional({ example: 'a9c721b4-73d0-4cf6-8f27-c558a69d7cb3' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   assignedToId?: string;
 }

@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -26,7 +27,7 @@ export class EvidencesController {
   @Get('incidents/:incidentId/evidences')
   findForIncident(
     @CurrentUser() user: JwtUser,
-    @Param('incidentId') incidentId: string,
+    @Param('incidentId', ParseUUIDPipe) incidentId: string,
   ) {
     return this.evidencesService.findForIncident(user.id, incidentId);
   }
@@ -34,7 +35,7 @@ export class EvidencesController {
   @Post('incidents/:incidentId/evidences')
   create(
     @CurrentUser() user: JwtUser,
-    @Param('incidentId') incidentId: string,
+    @Param('incidentId', ParseUUIDPipe) incidentId: string,
     @Body() dto: CreateEvidenceDto,
   ) {
     return this.evidencesService.create(user.id, incidentId, dto);
@@ -42,7 +43,7 @@ export class EvidencesController {
 
   @Delete('evidences/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  remove(@CurrentUser() user: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.evidencesService.remove(user.id, id);
   }
 }

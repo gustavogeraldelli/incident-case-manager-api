@@ -219,6 +219,34 @@ describe('Incidents (e2e)', () => {
       });
   });
 
+  it('rejects incident payloads with invalid UUID references', async () => {
+    const accessToken = await registerAndLogin(
+      'invalid-uuid.incidents.e2e@example.com',
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/v1/incidents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        organizationId: 'not-a-uuid',
+        systemId: 'also-not-a-uuid',
+        title: 'Invalid incident references',
+        severity: IncidentSeverity.SEV2,
+        category: IncidentCategory.SECURITY,
+        summary: 'This request should fail before reaching business logic.',
+        detectedAt: '2026-07-26T12:00:00.000Z',
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.message).toEqual(
+          expect.arrayContaining([
+            'organizationId must be a UUID',
+            'systemId must be a UUID',
+          ]),
+        );
+      });
+  });
+
   it('updates incident status through the dedicated status endpoint', async () => {
     const accessToken = await registerAndLogin(
       'status.incidents.e2e@example.com',

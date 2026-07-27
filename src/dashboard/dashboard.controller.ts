@@ -1,4 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -16,7 +22,7 @@ export class DashboardController {
   @Get('summary')
   @UseGuards(OrganizationRoleGuard)
   @Roles(MembershipRole.VIEWER)
-  getSummary(@Param('organizationId') organizationId: string) {
+  getSummary(@Param('organizationId', ParseUUIDPipe) organizationId: string) {
     return this.dashboardService.getOrganizationSummary(organizationId);
   }
 }

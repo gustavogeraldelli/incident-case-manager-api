@@ -1,4 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtUser } from '../auth/types/jwt-user.type';
@@ -15,13 +21,16 @@ export class AuditController {
   @Get('organizations/:organizationId/audit-logs')
   findForOrganization(
     @CurrentUser() user: JwtUser,
-    @Param('organizationId') organizationId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
   ) {
     return this.auditService.findForOrganization(user.id, organizationId);
   }
 
   @Get('incidents/:id/audit-logs')
-  findForIncident(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  findForIncident(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.auditService.findForIncident(user.id, id);
   }
 }

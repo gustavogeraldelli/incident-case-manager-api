@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -31,7 +32,7 @@ export class ResponseActionsController {
   @Get('incidents/:incidentId/actions')
   findForIncident(
     @CurrentUser() user: JwtUser,
-    @Param('incidentId') incidentId: string,
+    @Param('incidentId', ParseUUIDPipe) incidentId: string,
   ) {
     return this.responseActionsService.findForIncident(user.id, incidentId);
   }
@@ -39,7 +40,7 @@ export class ResponseActionsController {
   @Post('incidents/:incidentId/actions')
   create(
     @CurrentUser() user: JwtUser,
-    @Param('incidentId') incidentId: string,
+    @Param('incidentId', ParseUUIDPipe) incidentId: string,
     @Body() dto: CreateResponseActionDto,
   ) {
     return this.responseActionsService.create(user.id, incidentId, dto);
@@ -48,7 +49,7 @@ export class ResponseActionsController {
   @Patch('actions/:id')
   update(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateResponseActionDto,
   ) {
     return this.responseActionsService.update(user.id, id, dto);
@@ -57,7 +58,7 @@ export class ResponseActionsController {
   @Patch('actions/:id/status')
   updateStatus(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateActionStatusDto,
   ) {
     return this.responseActionsService.updateStatus(user.id, id, dto);
@@ -65,7 +66,7 @@ export class ResponseActionsController {
 
   @Delete('actions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  remove(@CurrentUser() user: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.responseActionsService.remove(user.id, id);
   }
 }

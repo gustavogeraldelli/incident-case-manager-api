@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -13,12 +14,12 @@ import {
 } from '../../generated/prisma/client';
 
 export class CreateIncidentDto {
-  @ApiProperty({ example: 'cm2org8cz0000xks7j5x8a1d2' })
-  @IsString()
+  @ApiProperty({ example: '3f7a95dd-69e5-4e6f-a9b9-b6d83f2f6d1a' })
+  @IsUUID()
   organizationId: string;
 
-  @ApiProperty({ example: 'cm2sys9da0001xks7l7z9b2e3' })
-  @IsString()
+  @ApiProperty({ example: '7c5c05c7-9303-4a7a-8a23-9fbb1a623b12' })
+  @IsUUID()
   systemId: string;
 
   @ApiProperty({
@@ -40,7 +41,8 @@ export class CreateIncidentDto {
   category: IncidentCategory;
 
   @ApiProperty({
-    example: 'Multiple requests with valid credentials originated from an unusual network range.',
+    example:
+      'Multiple requests with valid credentials originated from an unusual network range.',
     minLength: 10,
     maxLength: 2000,
   })
@@ -76,8 +78,8 @@ export class CreateIncidentDto {
   @IsDateString()
   resolvedAt?: string;
 
-  @ApiPropertyOptional({ example: 'cm2usr7by0000xks7x9y8z1a2' })
+  @ApiPropertyOptional({ example: 'a9c721b4-73d0-4cf6-8f27-c558a69d7cb3' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   assignedToId?: string;
 }

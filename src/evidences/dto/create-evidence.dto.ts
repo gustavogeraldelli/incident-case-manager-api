@@ -8,7 +8,8 @@ export class CreateEvidenceDto {
   type: EvidenceType;
 
   @ApiProperty({
-    example: 'Auth service log entries showing successful token usage from an unexpected IP range.',
+    example:
+      'Auth service log entries showing successful token usage from an unexpected IP range.',
     minLength: 3,
     maxLength: 5000,
   })

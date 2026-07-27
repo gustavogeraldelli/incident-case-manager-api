@@ -196,6 +196,20 @@ describe('Organizations (e2e)', () => {
       });
   });
 
+  it('rejects invalid organization id route params', async () => {
+    const user = await registerAndLogin(
+      'invalid-id.organizations.e2e@example.com',
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/v1/organizations/not-a-uuid')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Invalid organization id');
+      });
+  });
+
   it('rejects invalid organization payloads', async () => {
     const user = await registerAndLogin(
       'invalid.organizations.e2e@example.com',

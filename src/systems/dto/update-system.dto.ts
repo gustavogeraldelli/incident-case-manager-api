@@ -13,7 +13,11 @@ import {
 } from '../../generated/prisma/client';
 
 export class UpdateSystemDto {
-  @ApiPropertyOptional({ example: 'Payments API', minLength: 2, maxLength: 100 })
+  @ApiPropertyOptional({
+    example: 'Payments API',
+    minLength: 2,
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
   @MinLength(2)

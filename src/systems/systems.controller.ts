@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -31,7 +32,9 @@ export class SystemsController {
   @Get('organizations/:organizationId/systems')
   @UseGuards(OrganizationRoleGuard)
   @Roles(MembershipRole.VIEWER)
-  findAllForOrganization(@Param('organizationId') organizationId: string) {
+  findAllForOrganization(
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+  ) {
     return this.systemsService.findAllForOrganization(organizationId);
   }
 
@@ -39,21 +42,24 @@ export class SystemsController {
   @UseGuards(OrganizationRoleGuard)
   @Roles(MembershipRole.RESPONDER)
   create(
-    @Param('organizationId') organizationId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
     @Body() dto: CreateSystemDto,
   ) {
     return this.systemsService.create(organizationId, dto);
   }
 
   @Get('systems/:id')
-  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.systemsService.findOneForUser(user.id, id);
   }
 
   @Patch('systems/:id')
   update(
     @CurrentUser() user: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSystemDto,
   ) {
     return this.systemsService.updateForUser(user.id, id, dto);
@@ -61,7 +67,7 @@ export class SystemsController {
 
   @Delete('systems/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  remove(@CurrentUser() user: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.systemsService.removeForUser(user.id, id);
   }
 }

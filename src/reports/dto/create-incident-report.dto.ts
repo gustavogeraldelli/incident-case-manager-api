@@ -3,7 +3,8 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateIncidentReportDto {
   @ApiPropertyOptional({
-    example: 'The alert threshold worked, but escalation ownership was unclear.',
+    example:
+      'The alert threshold worked, but escalation ownership was unclear.',
     maxLength: 2000,
   })
   @IsOptional()
@@ -12,7 +13,8 @@ export class CreateIncidentReportDto {
   lessonsLearned?: string;
 
   @ApiPropertyOptional({
-    example: 'Add a quarterly token rotation drill and document the escalation path.',
+    example:
+      'Add a quarterly token rotation drill and document the escalation path.',
     maxLength: 2000,
   })
   @IsOptional()

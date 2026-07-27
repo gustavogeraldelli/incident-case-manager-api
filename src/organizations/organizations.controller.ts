@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -29,7 +37,10 @@ export class OrganizationsController {
   @Get(':id')
   @UseGuards(OrganizationRoleGuard)
   @Roles(MembershipRole.VIEWER)
-  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: JwtUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.organizationsService.findOneForUser(user.id, id);
   }
 }
