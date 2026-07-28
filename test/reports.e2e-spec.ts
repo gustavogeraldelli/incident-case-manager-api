@@ -33,6 +33,7 @@ describe('Reports (e2e)', () => {
     await prisma.system.deleteMany();
     await prisma.membership.deleteMany();
     await prisma.organization.deleteMany();
+    await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
   });
 

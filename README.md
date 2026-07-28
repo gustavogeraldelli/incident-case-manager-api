@@ -1,12 +1,14 @@
 # Incident Case Manager API
 
+[![CI](https://github.com/gustavogeraldelli/incident-case-manager-api/actions/workflows/ci.yml/badge.svg)](https://github.com/gustavogeraldelli/incident-case-manager-api/actions/workflows/ci.yml)
+
 Incident Case Manager API is a NestJS backend for managing incident response workflows across organizations and their systems. It models the lifecycle of an incident from detection to resolution: system ownership, incident registration, evidence collection, response actions, audit history, final reports and operational dashboard summaries.
 
 The project is designed as a portfolio backend focused on realistic application concerns: authentication, organization-scoped authorization, relational modeling, request validation, database migrations, auditability, background jobs, caching, OpenAPI documentation, automated tests and CI.
 
 ## Features
 
-- JWT authentication with register, login and current-user endpoints.
+- JWT authentication with refresh token rotation.
 - Organization membership with role-based access control.
 - System inventory scoped by organization.
 - Incident creation, filtering, assignment and status updates.
@@ -60,7 +62,7 @@ src/
   common/            shared decorators and guards
 ```
 
-PostgreSQL is used as the source of truth for users, organizations, systems, incidents, evidence, response actions, audit logs, reports and export jobs. Prisma manages the schema, migrations and type-safe database access.
+PostgreSQL is used as the source of truth for users, refresh tokens, organizations, systems, incidents, evidence, response actions, audit logs, reports and export jobs. Prisma manages the schema, migrations and type-safe database access.
 
 Redis is used in two ways:
 
@@ -87,7 +89,7 @@ The main API flow is:
 
 The API exposes the incident response flow through resource-oriented endpoints under `/api/v1`.
 
-Authentication starts with `POST /api/v1/auth/register` and `POST /api/v1/auth/login`. Authenticated requests use a Bearer token, and `GET /api/v1/auth/me` returns the current user.
+Authentication starts with `POST /api/v1/auth/register` and `POST /api/v1/auth/login`. Login returns an access token and a refresh token. Authenticated requests use the access token as a Bearer token, `POST /api/v1/auth/refresh` rotates refresh tokens, `POST /api/v1/auth/logout` revokes a refresh token, and `GET /api/v1/auth/me` returns the current user.
 
 Organizations are managed through `/api/v1/organizations`, while systems are nested under an organization with routes such as `POST /api/v1/organizations/:organizationId/systems`.
 
@@ -153,6 +155,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 JWT_SECRET=change-this-secret
 JWT_EXPIRES_IN=1h
+REFRESH_TOKEN_EXPIRES_IN_DAYS=7
 PORT=3000
 ```
 

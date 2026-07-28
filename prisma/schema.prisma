@@ -17,12 +17,24 @@ model User {
   updatedAt    DateTime @updatedAt
 
   memberships       Membership[]
+  refreshTokens     RefreshToken[]
   createdIncidents  Incident[]       @relation("IncidentCreator")
   assignedIncidents Incident[]       @relation("IncidentAssignee")
   auditLogs         AuditLog[]       @relation("AuditLogActor")
   evidences         Evidence[]       @relation("EvidenceCreator")
   createdActions    ResponseAction[] @relation("ResponseActionCreator")
   assignedActions   ResponseAction[] @relation("ResponseActionAssignee")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Organization {

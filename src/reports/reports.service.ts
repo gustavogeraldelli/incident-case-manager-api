@@ -7,7 +7,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { ExportJobsService } from '../export-jobs/export-jobs.service';
-import { IncidentStatus } from '../generated/prisma/client';
+import { IncidentStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncidentReportDto } from './dto/create-incident-report.dto';
 import { EXPORT_REPORT_JOB, REPORT_EXPORT_QUEUE } from './report-export.queue';
@@ -26,6 +26,70 @@ const reportSelect = {
   markdown: true,
   createdAt: true,
   updatedAt: true,
+};
+
+const incidentForReportSelect = {
+  id: true,
+  organizationId: true,
+  systemId: true,
+  title: true,
+  severity: true,
+  status: true,
+  category: true,
+  summary: true,
+  impact: true,
+  rootCause: true,
+  detectedAt: true,
+  resolvedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  system: {
+    select: {
+      name: true,
+      type: true,
+      environment: true,
+      criticality: true,
+      ownerTeam: true,
+    },
+  },
+  evidences: {
+    select: {
+      type: true,
+      content: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  },
+  actions: {
+    select: {
+      type: true,
+      description: true,
+      status: true,
+      dueAt: true,
+      completedAt: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  },
+} satisfies Prisma.IncidentSelect;
+
+const auditLogForReportSelect = {
+  action: true,
+  before: true,
+  after: true,
+  createdAt: true,
+} satisfies Prisma.AuditLogSelect;
+
+type IncidentForReport = Prisma.IncidentGetPayload<{
+  select: typeof incidentForReportSelect;
+}> & {
+  auditLogs: Prisma.AuditLogGetPayload<{
+    select: typeof auditLogForReportSelect;
+  }>[];
 };
 
 @Injectable()
@@ -178,7 +242,10 @@ export class ReportsService {
     return report.markdown;
   }
 
-  private async findIncidentForReport(userId: string, incidentId: string) {
+  private async findIncidentForReport(
+    userId: string,
+    incidentId: string,
+  ): Promise<IncidentForReport> {
     const incident = await this.prisma.incident.findFirst({
       where: {
         id: incidentId,
@@ -190,54 +257,7 @@ export class ReportsService {
           },
         },
       },
-      select: {
-        id: true,
-        organizationId: true,
-        systemId: true,
-        title: true,
-        severity: true,
-        status: true,
-        category: true,
-        summary: true,
-        impact: true,
-        rootCause: true,
-        detectedAt: true,
-        resolvedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        system: {
-          select: {
-            name: true,
-            type: true,
-            environment: true,
-            criticality: true,
-            ownerTeam: true,
-          },
-        },
-        evidences: {
-          select: {
-            type: true,
-            content: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-        actions: {
-          select: {
-            type: true,
-            description: true,
-            status: true,
-            dueAt: true,
-            completedAt: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-      },
+      select: incidentForReportSelect,
     });
 
     if (!incident) {
@@ -249,12 +269,7 @@ export class ReportsService {
         entityType: 'Incident',
         entityId: incident.id,
       },
-      select: {
-        action: true,
-        before: true,
-        after: true,
-        createdAt: true,
-      },
+      select: auditLogForReportSelect,
       orderBy: {
         createdAt: 'asc',
       },
@@ -266,9 +281,7 @@ export class ReportsService {
     };
   }
 
-  private buildTimeline(
-    incident: Awaited<ReturnType<typeof this.findIncidentForReport>>,
-  ) {
+  private buildTimeline(incident: IncidentForReport) {
     const lines = [
       `- Detected at: ${incident.detectedAt.toISOString()}`,
       `- Current status: ${incident.status}`,
@@ -301,9 +314,7 @@ export class ReportsService {
     return error instanceof Error ? error.message : 'Unknown error';
   }
 
-  private buildResolution(
-    incident: Awaited<ReturnType<typeof this.findIncidentForReport>>,
-  ) {
+  private buildResolution(incident: IncidentForReport) {
     const doneActions = incident.actions.filter(
       (action) => action.status === 'DONE',
     );
@@ -318,7 +329,7 @@ export class ReportsService {
   }
 
   buildMarkdown(input: {
-    incident: Awaited<ReturnType<typeof this.findIncidentForReport>>;
+    incident: IncidentForReport;
     timeline: string;
     resolution?: string;
     lessonsLearned?: string;
@@ -372,11 +383,7 @@ export class ReportsService {
     ].join('\n');
   }
 
-  private formatEvidences(
-    evidences: Awaited<
-      ReturnType<typeof this.findIncidentForReport>
-    >['evidences'],
-  ) {
+  private formatEvidences(evidences: IncidentForReport['evidences']) {
     if (!evidences.length) {
       return 'No evidences registered.';
     }
@@ -389,9 +396,7 @@ export class ReportsService {
       .join('\n');
   }
 
-  private formatActions(
-    actions: Awaited<ReturnType<typeof this.findIncidentForReport>>['actions'],
-  ) {
+  private formatActions(actions: IncidentForReport['actions']) {
     if (!actions.length) {
       return 'No response actions registered.';
     }

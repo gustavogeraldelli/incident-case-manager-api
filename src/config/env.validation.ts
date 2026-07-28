@@ -6,6 +6,7 @@ const envSchema = z.object({
   REDIS_PORT: z.coerce.number().default(6379),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('1h'),
+  REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().positive().default(7),
   PORT: z.coerce.number().default(3000),
 });
 

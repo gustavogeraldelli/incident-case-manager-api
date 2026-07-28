@@ -7,13 +7,12 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { isUUID } from 'class-validator';
-import type { Request } from 'express';
 import { ORGANIZATION_ROLES_KEY } from '../decorators/roles.decorator';
 import type { JwtUser } from '../../auth/types/jwt-user.type';
 import { MembershipRole } from '../../generated/prisma/client';
 import { MembershipsService } from '../../memberships/memberships.service';
 
-type OrganizationRequest = Request & {
+type OrganizationRequest = {
   user?: JwtUser;
   params: {
     id?: string;

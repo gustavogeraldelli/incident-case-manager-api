@@ -28,6 +28,7 @@ describe('Auth (e2e)', () => {
     await prisma.system.deleteMany();
     await prisma.membership.deleteMany();
     await prisma.organization.deleteMany();
+    await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
   });
 
@@ -102,6 +103,74 @@ describe('Auth (e2e)', () => {
       .expect(201);
 
     expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.refreshToken).toEqual(expect.any(String));
+  });
+
+  it('refreshes tokens and revokes the previous refresh token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send(registerPayload)
+      .expect(201);
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: registerPayload.email,
+        password: registerPayload.password,
+      })
+      .expect(201);
+
+    const refreshToken = loginResponse.body.refreshToken as string;
+
+    const refreshResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken })
+      .expect(201);
+
+    expect(refreshResponse.body.accessToken).toEqual(expect.any(String));
+    expect(refreshResponse.body.refreshToken).toEqual(expect.any(String));
+    expect(refreshResponse.body.refreshToken).not.toBe(refreshToken);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Invalid refresh token');
+      });
+  });
+
+  it('logs out by revoking the refresh token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send(registerPayload)
+      .expect(201);
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: registerPayload.email,
+        password: registerPayload.password,
+      })
+      .expect(201);
+
+    const refreshToken = loginResponse.body.refreshToken as string;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toEqual({ revoked: true });
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Invalid refresh token');
+      });
   });
 
   it('rejects login with invalid credentials', async () => {
